@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>2026 Content Calendar (25/Month)</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  select { padding: 6px; margin-right: 10px; margin-bottom: 15px; }
+  table { border-collapse: collapse; width: 100%; max-width: 720px; }
+  th, td { border: 1px solid #ccc; width: 14.2%; height: 90px; vertical-align: top; padding: 6px; font-size: 13px; }
+  th { background: #f4f4f4; text-align: center; }
+  .tt { color: #e91e63; font-weight: bold; display: block; }
+  .fb { color: #2196f3; font-weight: bold; display: block; }
+  .rp { color: #777; font-size: 12px; display: block; }
+  #summary { margin-bottom: 10px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h2>📅 2026 Content Calendar (25 Produced / Month)</h2>
+
+<select id="monthSelect" onchange="renderCalendar()">
+  <option value="0">January</option>
+  <option value="1">February</option>
+  <option value="2">March</option>
+  <option value="3">April</option>
+  <option value="4">May</option>
+  <option value="5">June</option>
+  <option value="6">July</option>
+  <option value="7">August</option>
+  <option value="8">September</option>
+  <option value="9">October</option>
+  <option value="10">November</option>
+  <option value="11">December</option>
+</select>
+
+<div id="summary">TikTok Originals: 0 | FB Originals: 0 | Total Produced: 0</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Sun</th><th>Mon</th><th>Tue</th>
+      <th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
+    </tr>
+  </thead>
+  <tbody id="calendarBody"></tbody>
+</table>
+
+<script>
+const year = 2026;
+const totalPerMonth = 25; // KPI cap
+
+function renderCalendar() {
+  const month = parseInt(document.getElementById("monthSelect").value);
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const body = document.getElementById("calendarBody");
+
+  // Step 1: find TikTok days (Sun/Tue/Thu)
+  let tiktokDays = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = new Date(year, month, d).getDay();
+    if ([0,2,4].includes(dow)) tiktokDays.push(d);
+  }
+
+  // Step 2: count TikTok slots toward total produced
+  let tiktokCount = Math.min(tiktokDays.length, totalPerMonth);
+  let fbRemaining = totalPerMonth - tiktokCount;
+
+  // Step 3: allocate FB Originals, prioritizing Saturdays
+  let fbOriginalDays = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = new Date(year, month, d).getDay();
+    if (dow === 6 && fbRemaining > 0) { 
+      fbOriginalDays.push(d); 
+      fbRemaining--; 
+    }
+  }
+
+  // Step 4: allocate FB Originals on Sun/Tue/Thu if still slots remaining
+  for (let d of tiktokDays) {
+    if (fbRemaining <= 0) break;
+    if (!fbOriginalDays.includes(d)) {
+      fbOriginalDays.push(d);
+      fbRemaining--;
+    }
+  }
+
+  // Step 5: render calendar with counters
+  let row = document.createElement("tr");
+  let tiktokTotal = 0;
+  let fbTotal = 0;
+  let day = 1;
+
+  for (let i = 0; i < 7; i++) {
+    if (i < firstDay) row.appendChild(document.createElement("td"));
+    else {
+      const cellData = createCell(month, day++, tiktokDays, fbOriginalDays);
+      tiktokTotal += cellData.tiktok;
+      fbTotal += cellData.fb;
+      row.appendChild(cellData.cell);
+    }
+  }
+  body.innerHTML = "";
+  body.appendChild(row);
+
+  while (day <= daysInMonth) {
+    row = document.createElement("tr");
+    for (let i = 0; i < 7; i++) {
+      if (day <= daysInMonth) {
+        const cellData = createCell(month, day++, tiktokDays, fbOriginalDays);
+        tiktokTotal += cellData.tiktok;
+        fbTotal += cellData.fb;
+        row.appendChild(cellData.cell);
+      } else row.appendChild(document.createElement("td"));
+    }
+    body.appendChild(row);
+  }
+
+  document.getElementById("summary").innerText =
+    `TikTok Originals: ${tiktokTotal} | FB Originals: ${fbTotal} | Total Produced: ${tiktokTotal + fbTotal}`;
+}
+
+function createCell(month, date, tiktokDays, fbOriginalDays) {
+  const cell = document.createElement("td");
+  const dow = new Date(year, month, date).getDay();
+  let tiktok = 0, fb = 0;
+  cell.innerHTML = `<strong>${date}</strong><br>`;
+
+  if (tiktokDays.includes(date)) {
+    cell.innerHTML += `<span class="tt">🎥 TikTok Original</span>`;
+    tiktok = 1;
+  }
+
+  if (fbOriginalDays.includes(date)) {
+    cell.innerHTML += `<span class="fb">🟦 FB Original</span>`;
+    fb = 1;
+  }
+
+  if ([1,3,5].includes(dow)) {
+    cell.innerHTML += `<span class="rp">🔁 FB Repost</span>`;
+  }
+
+  return {cell, tiktok, fb};
+}
+
+renderCalendar();
+</script>
+
+</body>
+</html>
